@@ -33,14 +33,14 @@ fn main() {
 	}
 
 	let mut data_space: HashMap<i64,i64> = HashMap::new();
-	run_branch(&mut data_space, &mut pos, &program_lines, (0, false), &Vec::new());
+	run_branch(&mut data_space, &mut pos, &program_lines, (0, false, 0), &Vec::new());
 	println!("Program exits without errors.");
 }
 
-fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_lines: &Vec<&str>, prev_pointer: (i64, bool), hard_exclude: &Vec<(usize, usize)>) -> (Option<i64>, i64, bool) {
+fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_lines: &Vec<&str>, prev_pointer: (i64, bool, i64), hard_exclude: &Vec<(usize, usize)>) -> (Option<i64>, i64, bool) {
 	let mut d_pos: i64 = prev_pointer.0;
 	let mut in_values: bool = prev_pointer.1;
-	let mut contained: i64 = 0;
+	let mut contained: i64 = prev_pointer.2;
 	let mut out: Option<i64> = None;
 	let mut fstep: bool = true;
 
@@ -116,7 +116,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 				}
 				let mut top_pos = ProgramPos { x: pos.x, y: pos.y - 1, old_pos: (pos.x, pos.y) };
 				let iterexcl: Vec<(usize, usize)> = Vec::from([(pos.x-1, pos.y), (pos.x+1, pos.y)]);
-				let iteramt = run_branch(data_space, &mut top_pos, program_lines, (d_pos, in_values), &iterexcl);
+				let iteramt = run_branch(data_space, &mut top_pos, program_lines, (d_pos, in_values, contained), &iterexcl);
 				match iteramt.0 {
 					None => panic!("Error at ({}, {}): Repeat's top branch must return a value", pos.x+1, pos.y+1),
 					Some(x) => {
@@ -125,7 +125,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 						}
 						for _ in 0..x {
 							let mut bot_pos = ProgramPos { x: pos.x, y: pos.y + 1, old_pos: (pos.x, pos.y) };
-							let iterproc = run_branch(data_space, &mut bot_pos, program_lines, (d_pos, in_values), &iterexcl);
+							let iterproc = run_branch(data_space, &mut bot_pos, program_lines, (d_pos, in_values, contained), &iterexcl);
 							d_pos = iterproc.1;
 							in_values = iterproc.2;
 						}
@@ -138,6 +138,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 				} else {
 					new_pos = (pos.x + 1, pos.y);
 				}
+				if char_at(new_pos.0, new_pos.1, program_lines) == ' ' { break 'beloop }
 			},
 			'-' => {
 				if pos.old_pos.0 < pos.x { new_pos = (pos.x + 1, pos.y)
@@ -178,9 +179,9 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 			},
 			'X' => {
 				let mut branchpos = ProgramPos { x: pos.x - 1, y: pos.y - 1, old_pos: (pos.x, pos.y) };
-				let c1branch = run_branch(data_space, &mut branchpos, program_lines, (d_pos, in_values), &Vec::new());
+				let c1branch = run_branch(data_space, &mut branchpos, program_lines, (d_pos, in_values, contained), &Vec::new());
 				let mut branchpos = ProgramPos { x: pos.x - 1, y: pos.y + 1, old_pos: (pos.x, pos.y) };
-				let c2branch = run_branch(data_space, &mut branchpos, program_lines, (d_pos, in_values), &Vec::new());
+				let c2branch = run_branch(data_space, &mut branchpos, program_lines, (d_pos, in_values, contained), &Vec::new());
 				if let Some(x) = c1branch.0 {
 					if let Some(y) = c2branch.0 {
 						if x == y {
@@ -188,10 +189,31 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 						} else {
 							new_pos = (pos.x + 1, pos.y + 1);
 						}
+						if char_at(new_pos.0, new_pos.1, program_lines) == ' ' { break 'beloop }
+					} else {
+						panic!("Error at ({}, {}): Cond's left right branch doesn't have an output!", pos.x+1, pos.y+1);
+					}
+				} else {
+					panic!("Error at ({}, {}): Cond's top left branch doesn't have an output!", pos.x+1, pos.y+1);
+				}
+			},
+			'A' => {
+				if neigh.len() > 1 { panic!("Error at ({}, {}): Absol doesn't know where to go!", pos.x+1, pos.y+1) }
+				else if neigh.len() == 1 {
+					new_pos = (neigh[0].0, neigh[0].1);
+					if in_values {
+						d_pos = d_pos.abs();
+					} else {
+						d_pos = get_data(data_space, &d_pos).abs();
 					}
 				}
-
+				else { break 'beloop }
 			},
+			'T' => {
+				if char_at(pos.x, pos.y+1, program_lines) != ' ' { new_pos = (pos.x, pos.y + 1) }
+				else { break 'beloop }
+			},
+			' ' => panic!("Error at ({}, {}): Program was led to whitespace\nLast position was ({}, {})", pos.x+1, pos.y+1, pos.old_pos.0+1, pos.old_pos.1+1),
 			_ => panic!("Error at ({}, {}): Unknown element {}\nLast position was ({}, {})", pos.x+1, pos.y+1, char_at(pos.x, pos.y, program_lines), pos.old_pos.0, pos.old_pos.1),
 		}
 		pos.old_pos = (pos.x, pos.y);
@@ -202,7 +224,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 }
 
 fn char_at(x: usize, y: usize, program_lines: &Vec<&str>) -> char {
-	if y > program_lines.len() { return ' '; }
+	if y >= program_lines.len() { return ' '; }
 	let line = program_lines[y];
 	if x > line.len() { return ' ' }
 	match line.chars().nth(x) {
@@ -224,6 +246,7 @@ fn get_neighbors(x: usize, y: usize, program_lines: &Vec<&str>, excl: Vec<(usize
 	};
 	for i in low_bound_x..x+2 {
 		for j in low_bound_y..y+2 {
+			if ((i as i64)-(x as i64)).abs() == ((j as i64)-(y as i64)).abs() {continue }
 			if !(i == x && j == y) && !excl.contains(&&(i, j)) {
 				if char_at(i, j, program_lines) != ' ' {
 					ret.push((i, j));
