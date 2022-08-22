@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 use std::io;
 use std::fs;
+use std::env;
 
 #[derive(Clone)]
 struct ProgramPos {
@@ -11,7 +12,14 @@ struct ProgramPos {
 }
 
 fn main() {
-    let program = fs::read_to_string("main.bfg").unwrap();
+	let args: Vec<String> = env::args().collect();
+	let program_name: String;
+	if args.len() > 2 { panic!("Too many arguments!"); }
+	else if args.len() < 2 { panic!("Please provide a file to run") }
+	else {
+		program_name = args[1].to_owned();
+	}
+    let program = fs::read_to_string(program_name).unwrap();
 	let program = program.replace("\r", "");
 	let program_lines = program.split("\n").collect::<Vec<_>>();
 	let mut pos = ProgramPos { x: 0, y: 0, old_pos: (0, 0) };
