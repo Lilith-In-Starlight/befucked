@@ -34,7 +34,6 @@ fn main() {
 
 	let mut data_space: HashMap<i64,i64> = HashMap::new();
 	run_branch(&mut data_space, &mut pos, &program_lines, (0, false, 0), &Vec::new());
-	println!("Program exits without errors.");
 }
 
 fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_lines: &Vec<&str>, prev_pointer: (i64, bool, i64), hard_exclude: &Vec<(usize, usize)>) -> (Option<i64>, i64, bool) {
@@ -97,6 +96,12 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 			},
 			'E' => {
 				println!("{}", &contained);
+				if neigh.len() > 1 { panic!("Error at ({}, {}): Print doesn't know where to go!", pos.x+1, pos.y+1) }
+				else if neigh.len() == 1 { new_pos = (neigh[0].0, neigh[0].1) }
+				else { break 'beloop }
+			},
+			'P' => {
+				print!("{}", *&contained as u8 as char);
 				if neigh.len() > 1 { panic!("Error at ({}, {}): Print doesn't know where to go!", pos.x+1, pos.y+1) }
 				else if neigh.len() == 1 { new_pos = (neigh[0].0, neigh[0].1) }
 				else { break 'beloop }
