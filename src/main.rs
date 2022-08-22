@@ -131,8 +131,6 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 						}
 					}
 				}
-				if in_values { contained = d_pos }
-				else { contained = get_data(&data_space, &d_pos) }
 				if pos.old_pos.0 > pos.x {
 					new_pos = (pos.x - 1, pos.y);
 				} else {
