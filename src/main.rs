@@ -259,7 +259,10 @@ fn get_neighbors(x: usize, y: usize, program_lines: &Vec<&str>, excl: Vec<(usize
 		for j in low_bound_y..y+2 {
 			if ((i as i64)-(x as i64)).abs() == ((j as i64)-(y as i64)).abs() {continue }
 			if !(i == x && j == y) && !excl.contains(&&(i, j)) {
-				if char_at(i, j, program_lines) != ' ' {
+				let char_check = char_at(i, j, program_lines);
+				if char_check != ' ' {
+					if (i < x || i > x) && char_check == '|' { continue }
+					if (j < y || j > y) && char_check == '-' { continue }
 					ret.push((i, j));
 				}
 			}
