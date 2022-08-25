@@ -40,15 +40,15 @@ fn main() {
 		y += 1;
 	}
 
-	let mut data_space: HashMap<i64,i64> = HashMap::new();
+	let mut data_space: HashMap<i128,i128> = HashMap::new();
 	run_branch(&mut data_space, &mut pos, &program_lines, (0, false, 0), &Vec::new());
 }
 
-fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_lines: &Vec<&str>, prev_pointer: (i64, bool, i64), hard_exclude: &Vec<(usize, usize)>) -> (Option<i64>, i64, bool) {
-	let mut d_pos: i64 = prev_pointer.0;
+fn run_branch(data_space: &mut HashMap<i128, i128>, pos: &mut ProgramPos, program_lines: &Vec<&str>, prev_pointer: (i128, bool, i128), hard_exclude: &Vec<(usize, usize)>) -> (Option<i128>, i128, bool) {
+	let mut d_pos: i128 = prev_pointer.0;
 	let mut in_values: bool = prev_pointer.1;
-	let mut contained: i64 = prev_pointer.2;
-	let mut out: Option<i64> = None;
+	let mut contained: i128 = prev_pointer.2;
+	let mut out: Option<i128> = None;
 	let mut fstep: bool = true;
 
 	'beloop:loop {
@@ -89,7 +89,8 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 				if in_values { contained = d_pos }
 				else { 
 					let k = get_data(&data_space, &d_pos);
-					data_space.insert(d_pos, contained);
+					if contained != 0 { data_space.insert(d_pos, contained); }
+					else { data_space.remove(&d_pos); }
 					contained = k;
 				}
 				if neigh.len() > 1 { panic!("Error at ({}, {}): Grab doesn't know where to go!", pos.x+1, pos.y+1) }
@@ -169,7 +170,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 				let mut input = String::new();
 				println!("Program awaiting input...");
 				io::stdin().read_line(&mut input).unwrap();
-				let n = input.trim().parse::<i64>();
+				let n = input.trim().parse::<i128>();
 				match n {
 					Ok(x) => {
 						if in_values {
@@ -183,7 +184,7 @@ fn run_branch(data_space: &mut HashMap<i64, i64>, pos: &mut ProgramPos, program_
 						if input.trim().as_bytes().len() != 1 {
 							panic!("OVERFLOW: Input must be either a number or a single byte");
 						} else {
-							data_space.insert(d_pos, input.chars().nth(0).unwrap() as i64);
+							data_space.insert(d_pos, input.chars().nth(0).unwrap() as i128);
 						}
 					},
 				}
@@ -257,7 +258,7 @@ fn get_neighbors(x: usize, y: usize, program_lines: &Vec<&str>, excl: Vec<(usize
 	};
 	for i in low_bound_x..x+2 {
 		for j in low_bound_y..y+2 {
-			if ((i as i64)-(x as i64)).abs() == ((j as i64)-(y as i64)).abs() {continue }
+			if ((i as i128)-(x as i128)).abs() == ((j as i128)-(y as i128)).abs() {continue }
 			if !(i == x && j == y) && !excl.contains(&&(i, j)) {
 				let char_check = char_at(i, j, program_lines);
 				if char_check != ' ' {
@@ -271,7 +272,7 @@ fn get_neighbors(x: usize, y: usize, program_lines: &Vec<&str>, excl: Vec<(usize
 	ret
 }
 
-fn get_data(data_space: &HashMap<i64, i64>, d_pos: &i64) -> i64 {
+fn get_data(data_space: &HashMap<i128, i128>, d_pos: &i128) -> i128 {
 	if data_space.contains_key(d_pos) {
 		return data_space[d_pos];
 	}
